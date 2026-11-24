@@ -504,14 +504,9 @@ class WinCLIP(nn.Module):
     def forward(self,image: Optional[torch.Tensor] = None):
         device = torch.cuda.current_device()
         img = image[0]
-        img_n1 = image[1]
-        img_n2 = image[2]
-        img_n3 = image[3]
-        img_n4 = image[4]
-        # img_n5 = image[5]
-        # img_n6 = image[6]
-        # img_n7 = image[7]
-        # img_n8 = image[8]
+        normal_images = image[1:]
+        if not normal_images:
+            raise ValueError("Few-shot inference requires at least one normal reference image.")
         window_mask1 = self.window_masks.mask_generate(kernel_size=32, patch_size=16).squeeze().cuda()
         window_mask2 = self.window_masks.mask_generate(kernel_size=48, patch_size=16).squeeze().cuda()
         window_masks = [window_mask1, window_mask2]
@@ -519,27 +514,11 @@ class WinCLIP(nn.Module):
         if isinstance(img, list):
             pred = []
             for i in range(len(img)):
-                image = img[i].cuda(device=device)
-                normal_img = []
-                n1 = img_n1[i].cuda(device=device)
-                n2 = img_n2[i].cuda(device=device)
-                n3 = img_n3[i].cuda(device=device)
-                n4 = img_n4[i].cuda(device=device)
-                # n5 = img_n5[i].cuda(device=device)
-                # n6 = img_n6[i].cuda(device=device)
-                # n7 = img_n7[i].cuda(device=device)
-                # n8 = img_n8[i].cuda(device=device)
-                normal_img.append(n1)
-                normal_img.append(n2)
-                normal_img.append(n3)
-                normal_img.append(n4)
-                # normal_img.append(n5)
-                # normal_img.append(n6)
-                # normal_img.append(n7)
-                # normal_img.append(n8)
-                normal_img = torch.stack(normal_img)
-                normal_img = normal_img.squeeze(1)
-                F_w, F_p, _ = self.encode_image(image, window_masks=window_masks)
+                query_image = img[i].cuda(device=device)
+                normal_img = torch.stack(
+                    [ref[i].cuda(device=device) for ref in normal_images]
+                ).squeeze(1)
+                F_w, F_p, _ = self.encode_image(query_image, window_masks=window_masks)
                 self.build_image_feature_gallery(normal_img, window_masks)
                 visual_anomaly_map = self.calculate_visual_anomaly_score(F_w, F_p)
                 anomaly_map = visual_anomaly_map.float()
@@ -549,17 +528,9 @@ class WinCLIP(nn.Module):
             score = sum(pred)/len(pred)
         else:
             img = img.cuda(device=device)
-            normal_img = []
-            normal_img.append(img_n1.cuda(device=device))
-            normal_img.append(img_n2.cuda(device=device))
-            normal_img.append(img_n3.cuda(device=device))
-            normal_img.append(img_n4.cuda(device=device))
-            # normal_img.append(img_n5.cuda(device=device))
-            # normal_img.append(img_n6.cuda(device=device))
-            # normal_img.append(img_n7.cuda(device=device))
-            # normal_img.append(img_n8.cuda(device=device))
-            normal_img = torch.stack(normal_img)
-            normal_img = normal_img.squeeze(1)
+            normal_img = torch.stack(
+                [ref.cuda(device=device) for ref in normal_images]
+            ).squeeze(1)
             F_w, F_p, _= self.encode_image(img, window_masks=window_masks)
             self.build_image_feature_gallery(normal_img, window_masks)
             visual_anomaly_map = self.calculate_visual_anomaly_score(F_w, F_p)

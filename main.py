@@ -16,7 +16,7 @@ import os
 import math
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ['CUDA_VISIBLE_DEVICES'] = "1"
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 from datasets.mvtec_dataset import mvtec_dataset, OBJECT_TYPE
 
 state_level = {
@@ -162,7 +162,7 @@ def run(config):
 if __name__ == "__main__":
     np.random.seed(10)
     torch.manual_seed(10)
-    dataset_root_dir = '/home/zhujiawen/PDA/data/visa_anomaly_detection'
+    dataset_root_dir = '/content/drive/MyDrive'
     datasetname = "visa"
     obj_type_id = 0
     config = {
@@ -171,12 +171,12 @@ if __name__ == "__main__":
         'data_dir': os.path.join(dataset_root_dir, datasetname),
         'obj_type_id': obj_type_id,
         'obj_type': OBJECT_TYPE[obj_type_id],
-        'shot': 2,
+        'shot': 0,
     }
     all_auroc_list = []
     all_aupr_list = []
     all_f1_list = []
-    all_gt_list = []
+    all_gt_list = []    
     all_score_list = []
     with torch.no_grad(), torch.cuda.amp.autocast():
         for obj_type in OBJECT_TYPE[:-1]:
